@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import { REVIEW_COMMENT_MAX } from "@/lib/report-schema";
 import {
@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { FieldError } from "@/components/field-error";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -128,7 +129,7 @@ export function ReportReviewPanel({
           onClick={requestChanges}
         >
           {pending && intent === "request" ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Spinner size="sm" className="mr-2" />
           ) : null}
           Send back for correction
         </Button>
@@ -158,7 +159,7 @@ export function ReportReviewPanel({
             <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={approve} disabled={pending}>
               {pending && intent === "approve" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Spinner size="sm" className="mr-2" />
               ) : null}
               Approve
             </AlertDialogAction>

@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import {
   AlertCircle,
   CheckCircle2,
-  Loader2,
   Pencil,
   Plus,
   Trash2,
@@ -27,6 +26,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -322,7 +322,7 @@ export function ProjectsManager({
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {deletePending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner size="sm" className="mr-2" />
                 ) : null}
                 {deletePending ? "Deleting…" : "Delete"}
               </AlertDialogAction>

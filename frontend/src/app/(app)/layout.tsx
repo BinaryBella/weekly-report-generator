@@ -41,6 +41,14 @@ export default async function AppLayout({
                   Team
                 </Link>
               ) : null}
+              {canManage ? (
+                <Link
+                  href="/reviews/insights"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Insights
+                </Link>
+              ) : null}
               <Link
                 href="/projects"
                 className="text-muted-foreground transition-colors hover:text-foreground"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AlertCircle } from "lucide-react";
 
 import { formatDate, mostRecentMonday } from "@/lib/format";
@@ -139,7 +140,14 @@ export default async function TeamDashboardPage({
         <h1 className="text-2xl font-semibold text-primary">Team dashboard</h1>
         <p className="text-muted-foreground">
           Track every team member&apos;s reports for a week, compare a section
-          across the team, and open any report to approve it or request changes.
+          across the team, and open any report to approve it or request changes.{" "}
+          <Link
+            href="/reviews/insights"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            View the insights dashboard
+          </Link>{" "}
+          for team-wide metrics and charts.
         </p>
       </div>
 
