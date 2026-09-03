@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportDetailView } from "@/components/report-detail-view";
 import { ReportForm } from "@/components/report-form";
 import { ReportStatusBadge } from "@/components/report-status-badge";
+import { ReportVersionHistory } from "@/components/report-version-history";
 
 export const dynamic = "force-dynamic";
 
@@ -113,18 +114,33 @@ export default async function ReportDetailPage({
       ) : null}
 
       {editable ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
-              {report.status === "NEEDS_CORRECTION"
-                ? "Make corrections"
-                : "Edit draft"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ReportForm mode="edit" report={report} projects={projects} />
-          </CardContent>
-        </Card>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {report.status === "NEEDS_CORRECTION"
+                  ? "Make corrections"
+                  : "Edit draft"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ReportForm mode="edit" report={report} projects={projects} />
+            </CardContent>
+          </Card>
+
+          {report.version_history.length > 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <ReportVersionHistory
+                  versions={report.version_history}
+                  reviewComments={report.review_comments}
+                  projectName={projectName}
+                  currentRevision={report.version_history.length + 1}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+        </>
       ) : (
         <Card>
           <CardContent className="pt-6">

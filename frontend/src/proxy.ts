@@ -14,7 +14,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const ACCESS_COOKIE = "wrg_access";
 const REFRESH_COOKIE = "wrg_refresh";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/projects"];
+const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/projects", "/reviews"];
 const AUTH_PAGES = ["/login", "/register"];
 
 const BACKEND_API_URL =
@@ -95,6 +95,7 @@ export const config = {
     "/dashboard/:path*",
     "/admin/:path*",
     "/projects/:path*",
+    "/reviews/:path*",
     "/login",
     "/register",
   ],
