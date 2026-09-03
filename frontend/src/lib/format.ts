@@ -34,3 +34,27 @@ export function formatDateTime(iso: string): string {
     timeStyle: "short",
   });
 }
+
+/** `Date` → `YYYY-MM-DD` in local time (no UTC shift). */
+export function toISODate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Shift a `YYYY-MM-DD` string by whole days. */
+export function addDays(iso: string, days: number): string {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return toISODate(dt);
+}
+
+/** The Monday on or before `today` — a sensible default "selected week". */
+export function mostRecentMonday(today = new Date()): string {
+  const dt = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const sinceMonday = (dt.getDay() + 6) % 7; // Sun=0 → 6, Mon=1 → 0, …
+  dt.setDate(dt.getDate() - sinceMonday);
+  return toISODate(dt);
+}

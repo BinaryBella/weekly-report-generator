@@ -3,7 +3,16 @@ import "server-only";
 import { apiFetch, readErrorDetail } from "@/lib/api";
 import type { Result } from "@/lib/projects";
 import { getAccessToken } from "@/lib/session";
-import type { Report, ReportListResponse, ReportStatus } from "@/lib/types";
+import type {
+  Report,
+  ReportListResponse,
+  ReportSectionKey,
+  ReportStatus,
+  TeamSectionResponse,
+  TeamStatusResponse,
+} from "@/lib/types";
+
+const MANAGER_ONLY = "Only managers and admins can view the team dashboard.";
 
 const EXPIRED = "Your session has expired. Sign in again.";
 
@@ -43,6 +52,9 @@ export async function getTeamReports(options?: {
   status?: ReportStatus;
   userId?: string;
   projectId?: string;
+  weekStartDate?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   pageSize?: number;
 }): Promise<Result<ReportListResponse>> {
@@ -53,19 +65,76 @@ export async function getTeamReports(options?: {
   if (options?.status) params.set("status", options.status);
   if (options?.userId) params.set("user_id", options.userId);
   if (options?.projectId) params.set("project_id", options.projectId);
+  if (options?.weekStartDate) params.set("week_start_date", options.weekStartDate);
+  if (options?.dateFrom) params.set("date_from", options.dateFrom);
+  if (options?.dateTo) params.set("date_to", options.dateTo);
   params.set("page", String(options?.page ?? 1));
   params.set("page_size", String(options?.pageSize ?? 100));
 
   const res = await apiFetch(`/reports/?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (res.status === 403) {
-    return { error: "Only managers and admins can review team reports." };
-  }
+  if (res.status === 403) return { error: MANAGER_ONLY };
   if (!res.ok) {
     return { error: await readErrorDetail(res, "Could not load team reports.") };
   }
   return { data: (await res.json()) as ReportListResponse };
+}
+
+/**
+ * Per-member submission status for a selected week. Backend:
+ * `GET /reports/dashboard/status` (Manager/Admin only). One row per team member,
+ * including those who have not started a report for that week.
+ */
+export async function getTeamWeekStatus(
+  weekStartDate: string,
+  projectId?: string
+): Promise<Result<TeamStatusResponse>> {
+  const token = await getAccessToken();
+  if (!token) return { error: EXPIRED };
+
+  const params = new URLSearchParams({ week_start_date: weekStartDate });
+  if (projectId) params.set("project_id", projectId);
+
+  const res = await apiFetch(`/reports/dashboard/status?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 403) return { error: MANAGER_ONLY };
+  if (!res.ok) {
+    return {
+      error: await readErrorDetail(res, "Could not load the week's status."),
+    };
+  }
+  return { data: (await res.json()) as TeamStatusResponse };
+}
+
+/**
+ * One report section lined up across the whole team for a selected week.
+ * Backend: `GET /reports/dashboard/section/{section}` (Manager/Admin only).
+ * A member's section content is `null` while their report is a private draft.
+ */
+export async function getTeamSection(
+  weekStartDate: string,
+  section: ReportSectionKey,
+  projectId?: string
+): Promise<Result<TeamSectionResponse>> {
+  const token = await getAccessToken();
+  if (!token) return { error: EXPIRED };
+
+  const params = new URLSearchParams({ week_start_date: weekStartDate });
+  if (projectId) params.set("project_id", projectId);
+
+  const res = await apiFetch(
+    `/reports/dashboard/section/${section}?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (res.status === 403) return { error: MANAGER_ONLY };
+  if (!res.ok) {
+    return {
+      error: await readErrorDetail(res, "Could not load the section."),
+    };
+  }
+  return { data: (await res.json()) as TeamSectionResponse };
 }
 
 /**

@@ -217,3 +217,78 @@ export interface ReportListResponse {
   page: number;
   page_size: number;
 }
+
+/**
+ * Shapes for the manager team dashboard (backend `GET /reports/dashboard/*`).
+ */
+
+/** Per-member submission state for a week: the four report states plus one for
+ * a member who has no report for that week yet. */
+export type TeamReportStatus = ReportStatus | "NOT_STARTED";
+
+export const TEAM_REPORT_STATUS_LABELS: Record<TeamReportStatus, string> = {
+  NOT_STARTED: "Not started",
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  NEEDS_CORRECTION: "Needs correction",
+  APPROVED: "Approved",
+};
+
+/** Fixed order for status tallies / legends. */
+export const TEAM_STATUS_ORDER: TeamReportStatus[] = [
+  "NOT_STARTED",
+  "DRAFT",
+  "SUBMITTED",
+  "NEEDS_CORRECTION",
+  "APPROVED",
+];
+
+/** One team member's submission state for the selected week. */
+export interface TeamStatusRow {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  status: TeamReportStatus;
+  report_id: string | null;
+  project_id: string | null;
+  week_end_date: string | null;
+  submitted_at: string | null;
+  updated_at: string | null;
+}
+
+/** Response of `GET /reports/dashboard/status`. */
+export interface TeamStatusResponse {
+  week_start_date: string;
+  project_id: string | null;
+  total_members: number;
+  status_counts: Record<string, number>;
+  rows: TeamStatusRow[];
+}
+
+/** A single named part of a report, for the "one section across the team" view. */
+export type ReportSectionKey =
+  | "tasks_completed"
+  | "tasks_planned_next_week"
+  | "blockers"
+  | "achievements"
+  | "hours_worked_breakdown"
+  | "notes_or_links";
+
+/** One team member's copy of the requested section for the selected week.
+ * `content` is `null` when the member has not started, or the report is still a
+ * private draft. */
+export interface TeamSectionEntry {
+  user_id: string;
+  user_name: string;
+  status: TeamReportStatus;
+  report_id: string | null;
+  content: unknown;
+}
+
+/** Response of `GET /reports/dashboard/section/{section}`. */
+export interface TeamSectionResponse {
+  week_start_date: string;
+  section: ReportSectionKey;
+  project_id: string | null;
+  entries: TeamSectionEntry[];
+}

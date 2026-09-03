@@ -11,10 +11,29 @@ import type {
   Blocker,
   HoursWorkedBreakdown,
   Report,
+  ReportSectionKey,
   ReportTask,
   TaskPriority,
   TaskStatus,
 } from "@/lib/types";
+
+/** Sections a manager can line up across the whole team (backend enum). */
+export const REPORT_SECTIONS: ReportSectionKey[] = [
+  "tasks_completed",
+  "tasks_planned_next_week",
+  "blockers",
+  "achievements",
+  "hours_worked_breakdown",
+  "notes_or_links",
+];
+export const REPORT_SECTION_LABELS: Record<ReportSectionKey, string> = {
+  tasks_completed: "Tasks completed",
+  tasks_planned_next_week: "Tasks planned for next week",
+  blockers: "Blockers / challenges",
+  achievements: "Achievements / highlights",
+  hours_worked_breakdown: "Hours worked by task type",
+  notes_or_links: "Notes or links",
+};
 
 export const TASK_PRIORITIES: TaskPriority[] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
