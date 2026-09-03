@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
 
 import { assignRoleAction } from "@/lib/auth-actions";
 import { ROLES, type Role, type User } from "@/lib/types";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Select,
   SelectContent,
@@ -59,7 +59,7 @@ function RoleCell({
           </SelectContent>
         </Select>
         {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          <Spinner size="sm" className="text-muted-foreground" />
         ) : null}
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

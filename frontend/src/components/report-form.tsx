@@ -37,6 +37,7 @@ import type {
 } from "@/lib/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { FieldError } from "@/components/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -624,14 +625,28 @@ export function ReportForm({
           disabled={disabled}
           onClick={() => save(false)}
         >
-          {pending && intent === "draft" ? "Saving…" : "Save draft"}
+          {pending && intent === "draft" ? (
+            <>
+              <Spinner size="sm" className="mr-2" />
+              Saving…
+            </>
+          ) : (
+            "Save draft"
+          )}
         </Button>
         <Button
           type="button"
           disabled={disabled}
           onClick={() => save(true)}
         >
-          {pending && intent === "submit" ? "Submitting…" : submitLabel}
+          {pending && intent === "submit" ? (
+            <>
+              <Spinner size="sm" className="mr-2" />
+              Submitting…
+            </>
+          ) : (
+            submitLabel
+          )}
         </Button>
       </div>
     </form>

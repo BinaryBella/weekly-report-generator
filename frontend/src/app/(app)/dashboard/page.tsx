@@ -63,9 +63,25 @@ export default async function DashboardPage() {
                 Review submitted reports and manage team members.
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Head to the <span className="font-medium">Admin</span> area to
-              manage roles.
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex flex-col gap-1">
+                <Link
+                  href="/reviews"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Open the team dashboard
+                </Link>
+                <Link
+                  href="/reviews/insights"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Open the insights dashboard
+                </Link>
+              </div>
+              <p>
+                Head to the <span className="font-medium">Admin</span> area to
+                manage roles.
+              </p>
             </CardContent>
           </Card>
         ) : null}

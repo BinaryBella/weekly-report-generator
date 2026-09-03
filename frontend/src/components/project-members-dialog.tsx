@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { assignProjectMembersAction } from "@/lib/project-actions";
 import type { Project, User } from "@/lib/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -151,7 +152,7 @@ export function ProjectMembersDialog({
             disabled={pending || Boolean(usersError)}
           >
             {pending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Spinner size="sm" className="mr-2" />
             ) : null}
             {pending ? "Saving…" : "Save members"}
           </Button>
