@@ -19,10 +19,14 @@ import {
   type TokenResponse,
   type User,
 } from "@/lib/types";
+import { isValidEmail, validateRegister } from "@/lib/validation";
 
 export interface AuthFormState {
   error?: string;
   fieldErrors?: Record<string, string>;
+  /** Set on a successful submit so the client can show feedback then navigate. */
+  ok?: boolean;
+  redirectTo?: string;
 }
 
 /** Only allow same-origin, absolute-path redirect targets. */
@@ -45,8 +49,17 @@ export async function loginAction(
   const password = String(formData.get("password") ?? "");
   const next = safeNext(formData.get("next"));
 
-  if (!email || !password) {
-    return { error: "Enter your email and password." };
+  const fieldErrors: Record<string, string> = {};
+  if (!email) {
+    fieldErrors.email = "Enter your email address.";
+  } else if (!isValidEmail(email)) {
+    fieldErrors.email = "Enter a valid email address, e.g. you@example.com.";
+  }
+  if (!password) {
+    fieldErrors.password = "Enter your password.";
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
   }
 
   const res = await apiFetch("/auth/login", {
@@ -71,7 +84,9 @@ export async function loginAction(
     role = ((await me.json()) as User).role;
   }
 
-  redirect(next ?? landingPathForRole(role));
+  // The session cookies are already written above; hand the destination back to
+  // the client so it can show a success message before navigating.
+  return { ok: true, redirectTo: next ?? landingPathForRole(role) };
 }
 
 /**
@@ -87,15 +102,12 @@ export async function registerAction(
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  const fieldErrors: Record<string, string> = {};
-  if (!name) fieldErrors.name = "Enter your name.";
-  if (!email) fieldErrors.email = "Enter your email.";
-  if (password.length < 8) {
-    fieldErrors.password = "Password must be at least 8 characters.";
-  }
-  if (password !== confirmPassword) {
-    fieldErrors.confirmPassword = "Passwords do not match.";
-  }
+  const fieldErrors = validateRegister({
+    name,
+    email,
+    password,
+    confirmPassword,
+  });
   if (Object.keys(fieldErrors).length > 0) {
     return { fieldErrors };
   }
@@ -112,7 +124,7 @@ export async function registerAction(
     };
   }
 
-  redirect("/login?registered=1");
+  return { ok: true, redirectTo: "/login?registered=1" };
 }
 
 /**
