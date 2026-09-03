@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { requireUser } from "@/lib/session";
 import { getProjects } from "@/lib/projects";
+import { requireUser } from "@/lib/session";
 import {
   Card,
   CardContent,
@@ -9,43 +9,48 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ReportEntryForm } from "@/components/report-entry-form";
+import { ReportForm } from "@/components/report-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewReportEntryPage() {
+export default async function NewReportPage() {
   await requireUser("/dashboard/reports/new");
 
-  // Only live projects can be filed against.
+  // Only live projects can be filed against on a new report.
   const projectsResult = await getProjects(true);
   const projects = "data" in projectsResult ? projectsResult.data : [];
   const projectsError =
     "error" in projectsResult ? projectsResult.error : undefined;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-primary">New report entry</h1>
+        <h1 className="text-2xl font-semibold text-primary">New weekly report</h1>
         <p className="text-muted-foreground">
-          Start a draft weekly report and file it under a project / category.{" "}
+          Fill in the report structure below. Save it as a draft to finish later,
+          or submit it for manager review.{" "}
           <Link
-            href="/dashboard"
+            href="/dashboard/reports"
             className="font-medium text-primary underline-offset-4 hover:underline"
           >
-            Back to dashboard
+            Back to your reports
           </Link>
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Report details</CardTitle>
+          <CardTitle className="text-lg">Report</CardTitle>
           <CardDescription>
-            The report is saved as a draft you can finish later.
+            The same fields, in the same order, for everyone on the team.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ReportEntryForm projects={projects} projectsError={projectsError} />
+          <ReportForm
+            mode="create"
+            projects={projects}
+            projectsError={projectsError}
+          />
         </CardContent>
       </Card>
     </div>

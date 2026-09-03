@@ -28,6 +28,12 @@ export default async function AppLayout({
                 Dashboard
               </Link>
               <Link
+                href="/dashboard/reports"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                My reports
+              </Link>
+              <Link
                 href="/projects"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
