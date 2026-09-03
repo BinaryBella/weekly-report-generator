@@ -34,13 +34,24 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>The full reports workspace is delivered in a separate section.</p>
-            <Link
-              href="/dashboard/reports/new"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Start a new report entry
-            </Link>
+            <p>
+              Every report uses the same fixed structure, so your weeks stay
+              comparable on the manager&apos;s dashboard.
+            </p>
+            <div className="flex flex-col gap-1">
+              <Link
+                href="/dashboard/reports"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                View your report history
+              </Link>
+              <Link
+                href="/dashboard/reports/new"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Start a new weekly report
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
