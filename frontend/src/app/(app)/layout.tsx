@@ -19,7 +19,7 @@ export default async function AppLayout({
       <header className="border-b bg-card">
         <div className="container flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-6">
-            <span className="font-semibold">Weekly Report Generator</span>
+            <span className="font-semibold text-primary">Weekly Report Generator</span>
             <nav className="flex items-center gap-4 text-sm">
               <Link
                 href="/dashboard"

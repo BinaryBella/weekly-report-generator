@@ -38,7 +38,7 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Team &amp; roles</h1>
+        <h1 className="text-2xl font-semibold text-primary">Team &amp; roles</h1>
         <p className="text-muted-foreground">
           {canEditRoles
             ? "Assign roles to control who can review reports across the team."

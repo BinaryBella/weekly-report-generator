@@ -25,7 +25,7 @@ export default async function NewReportEntryPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">New report entry</h1>
+        <h1 className="text-2xl font-semibold text-primary">New report entry</h1>
         <p className="text-muted-foreground">
           Start a draft weekly report and file it under a project / category.{" "}
           <Link
