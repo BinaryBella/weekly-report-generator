@@ -38,7 +38,7 @@ export default async function AppLayout({
                   href="/reviews"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Reviews
+                  Team
                 </Link>
               ) : null}
               <Link
