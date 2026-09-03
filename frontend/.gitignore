@@ -1,17 +1,40 @@
+# dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# builds
 .next/
 out/
 build/
+dist/
 
+# env
 .env*
 !.env.example
 
+# typescript
 *.tsbuildinfo
+next-env.d.ts
 
+# logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# testing / coverage
+coverage/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
 .DS_Store
 Thumbs.db
+
+# misc
+*.pem

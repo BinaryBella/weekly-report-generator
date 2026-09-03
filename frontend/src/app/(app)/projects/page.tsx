@@ -34,7 +34,7 @@ export default async function ProjectsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Projects &amp; categories</h1>
+        <h1 className="text-2xl font-semibold text-primary">Projects &amp; categories</h1>
         <p className="text-muted-foreground">
           {canManage
             ? "Create the projects and categories that weekly report entries are filed under, and manage who is on each."
