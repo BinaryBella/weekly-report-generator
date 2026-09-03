@@ -133,6 +133,21 @@ export interface HoursWorkedBreakdown {
   other: number;
 }
 
+/**
+ * The content fields a report and each of its archived versions share. Used by
+ * the presentational section renderer so it can show either.
+ */
+export interface ReportContent {
+  week_start_date: string;
+  week_end_date: string;
+  tasks_planned_next_week: string;
+  tasks_completed: ReportTask[];
+  blockers: Blocker[];
+  achievements: Achievement[];
+  hours_worked_breakdown: HoursWorkedBreakdown | null;
+  notes_or_links: string | null;
+}
+
 /** One manager correction note in a report's review history. */
 export interface ReviewComment {
   comment: string;

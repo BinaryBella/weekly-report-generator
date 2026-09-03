@@ -58,6 +58,7 @@ export const TASK_NAME_MAX = 200;
 export const TEXT_MAX = 2000;
 export const TASKS_PLANNED_MAX = 5000;
 export const NOTES_MAX = 5000;
+export const REVIEW_COMMENT_MAX = 5000;
 
 /** Exactly the payload `POST /reports/` and `PUT /reports/{id}` accept. */
 export interface ReportInput {

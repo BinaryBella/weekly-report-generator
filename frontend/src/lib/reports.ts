@@ -35,6 +35,40 @@ export async function getMyReports(options?: {
 }
 
 /**
+ * Load every team member's reports for the manager review dashboard. Backend:
+ * `GET /reports/` (Manager/Admin only). Private drafts are never included. All
+ * filters are optional and AND-combined.
+ */
+export async function getTeamReports(options?: {
+  status?: ReportStatus;
+  userId?: string;
+  projectId?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<Result<ReportListResponse>> {
+  const token = await getAccessToken();
+  if (!token) return { error: EXPIRED };
+
+  const params = new URLSearchParams();
+  if (options?.status) params.set("status", options.status);
+  if (options?.userId) params.set("user_id", options.userId);
+  if (options?.projectId) params.set("project_id", options.projectId);
+  params.set("page", String(options?.page ?? 1));
+  params.set("page_size", String(options?.pageSize ?? 100));
+
+  const res = await apiFetch(`/reports/?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 403) {
+    return { error: "Only managers and admins can review team reports." };
+  }
+  if (!res.ok) {
+    return { error: await readErrorDetail(res, "Could not load team reports.") };
+  }
+  return { data: (await res.json()) as ReportListResponse };
+}
+
+/**
  * Load one report in full. Backend: `GET /reports/{id}` — the owner always; a
  * Manager/Admin only once it has left DRAFT. A `403`/`404` is turned into a
  * friendly message rather than a raw error.
