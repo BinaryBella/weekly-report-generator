@@ -14,7 +14,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const ACCESS_COOKIE = "wrg_access";
 const REFRESH_COOKIE = "wrg_refresh";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
+const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/projects"];
 const AUTH_PAGES = ["/login", "/register"];
 
 const BACKEND_API_URL =
@@ -91,5 +91,11 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/login", "/register"],
+  matcher: [
+    "/dashboard/:path*",
+    "/admin/:path*",
+    "/projects/:path*",
+    "/login",
+    "/register",
+  ],
 };
