@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
     "target": "ES2022",
     "lib": [
       "dom",
@@ -9,13 +8,11 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": false,
     "strict": true,
     "noEmit": true,
     "incremental": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "esModuleInterop": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -27,12 +24,10 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
       "@/*": [
         "./src/*"
       ]
-    },
-    "incremental": true
+    }
   },
   "include": [
     "next-env.d.ts",
@@ -40,10 +35,6 @@
     "**/*.tsx",
     "**/*.mts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    "**/*.ts",
-    "**/*.tsx"
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
