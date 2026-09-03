@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { requireUser } from "@/lib/session";
 import { isManagerOrAdmin } from "@/lib/types";
 import {
@@ -31,8 +33,14 @@ export default async function DashboardPage() {
               Create, edit, and submit your own weekly reports.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            The reports workspace is delivered in a separate section.
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>The full reports workspace is delivered in a separate section.</p>
+            <Link
+              href="/dashboard/reports/new"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Start a new report entry
+            </Link>
           </CardContent>
         </Card>
 

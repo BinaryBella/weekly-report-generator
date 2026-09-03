@@ -27,6 +27,12 @@ export default async function AppLayout({
               >
                 Dashboard
               </Link>
+              <Link
+                href="/projects"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Projects
+              </Link>
               {canManage ? (
                 <Link
                   href="/admin"
