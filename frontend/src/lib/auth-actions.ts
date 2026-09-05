@@ -161,9 +161,9 @@ export async function logoutAction(): Promise<void> {
 }
 
 /**
- * Assign a role to a user (backend `PATCH /users/{id}/role`, Admin only). The
- * backend enforces the "Admin only" rule and rejects an admin changing their own
- * role; this action just surfaces whatever it says.
+ * Assign a role to a user (backend `PATCH /users/{id}/role`, Manager only). The
+ * backend enforces the "Manager only" rule and rejects a Manager changing their
+ * own role; this action just surfaces whatever it says.
  */
 export async function assignRoleAction(
   userId: string,

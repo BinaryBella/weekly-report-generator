@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useMemo, type ReactNode } from "react";
 
 import {
   HOURS_TYPES,
@@ -8,14 +10,19 @@ import {
   TASK_STATUS_LABELS,
 } from "@/lib/report-schema";
 import { formatDate } from "@/lib/format";
-import type {
-  Achievement,
-  Blocker,
-  HoursWorkedBreakdown,
-  ReportTask,
-  TeamSectionEntry,
-  TeamSectionResponse,
+import {
+  TEAM_REPORT_STATUS_LABELS,
+  type Achievement,
+  type Blocker,
+  type HoursWorkedBreakdown,
+  type ReportTask,
+  type TeamSectionEntry,
+  type TeamSectionResponse,
 } from "@/lib/types";
+import { usePagedList } from "@/hooks/use-paged-list";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { SearchInput } from "@/components/ui/search-input";
 import { KeyTag } from "@/components/report-sections";
 import { TeamStatusBadge } from "@/components/team-status-badge";
 
@@ -26,35 +33,69 @@ import { TeamStatusBadge } from "@/components/team-status-badge";
  * a private draft).
  */
 export function TeamSectionCompare({ data }: { data: TeamSectionResponse }) {
-  const entries = [...data.entries].sort((a, b) =>
-    a.user_name.localeCompare(b.user_name)
+  const entries = useMemo(
+    () =>
+      [...data.entries].sort((a, b) =>
+        a.user_name.localeCompare(b.user_name)
+      ),
+    [data.entries]
+  );
+  const list = usePagedList(
+    entries,
+    (entry) =>
+      `${entry.user_name} ${TEAM_REPORT_STATUS_LABELS[entry.status]}`,
+    10
   );
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        {REPORT_SECTION_LABELS[data.section]} · week starting{" "}
-        {formatDate(data.week_start_date)}
-      </p>
-      {entries.length === 0 ? (
-        <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No team members to compare for this week.
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {REPORT_SECTION_LABELS[data.section]} · week starting{" "}
+          {formatDate(data.week_start_date)}
         </p>
+        <SearchInput
+          value={list.query}
+          onChange={list.setQuery}
+          placeholder="Search team members…"
+        />
+      </div>
+      {list.total === 0 ? (
+        <EmptyState
+          title={
+            list.query
+              ? "No team members match your search"
+              : "No team members to compare for this week"
+          }
+        />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
-          {entries.map((entry) => (
-            <li
-              key={entry.user_id}
-              className="space-y-2 rounded-md border p-3 text-sm"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{entry.user_name}</span>
-                <TeamStatusBadge status={entry.status} />
-              </div>
-              <SectionContent section={data.section} entry={entry} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {list.pageItems.map((entry) => (
+              <li
+                key={entry.user_id}
+                className="space-y-2 rounded-md border p-3 text-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{entry.user_name}</span>
+                  <TeamStatusBadge status={entry.status} />
+                </div>
+                <SectionContent section={data.section} entry={entry} />
+              </li>
+            ))}
+          </ul>
+          <ListPagination
+            page={list.page}
+            pageCount={list.pageCount}
+            pageSize={list.pageSize}
+            total={list.total}
+            rangeStart={list.rangeStart}
+            rangeEnd={list.rangeEnd}
+            onPageChange={list.setPage}
+            onPageSizeChange={list.setPageSize}
+            itemLabel="members"
+          />
+        </>
       )}
     </div>
   );

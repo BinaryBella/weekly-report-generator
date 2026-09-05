@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { getProjects } from "@/lib/projects";
 import { requireUser } from "@/lib/session";
 import {
@@ -28,13 +26,7 @@ export default async function NewReportPage() {
         <h1 className="text-2xl font-semibold text-primary">New weekly report</h1>
         <p className="text-muted-foreground">
           Fill in the report structure below. Save it as a draft to finish later,
-          or submit it for manager review.{" "}
-          <Link
-            href="/dashboard/reports"
-            className="font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Back to your reports
-          </Link>
+          or submit it for manager review.
         </p>
       </div>
 

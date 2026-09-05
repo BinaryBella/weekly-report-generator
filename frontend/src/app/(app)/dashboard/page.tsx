@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { requireUser } from "@/lib/session";
-import { isManagerOrAdmin } from "@/lib/types";
+import { isManager } from "@/lib/types";
 import {
   Card,
   CardContent,
@@ -14,14 +14,19 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const canManage = isManagerOrAdmin(user.role);
+  const canManage = isManager(user.role);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-primary">Welcome, {user.name}</h1>
+        <h1 className="text-2xl font-semibold text-primary">
+          Welcome, {user.name}
+        </h1>
         <p className="text-muted-foreground">
           You are signed in as <span className="font-medium">{user.role}</span>.
+          {canManage
+            ? " Use the Team dashboard and Insights to review the whole team."
+            : " Head to My reports to write and submit your weekly report."}
         </p>
       </div>
 
@@ -36,7 +41,7 @@ export default async function DashboardPage() {
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
               Every report uses the same fixed structure, so your weeks stay
-              comparable on the manager&apos;s dashboard.
+              comparable across the team.
             </p>
             <div className="flex flex-col gap-1">
               <Link
@@ -58,9 +63,9 @@ export default async function DashboardPage() {
         {canManage ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Team overview</CardTitle>
+              <CardTitle className="text-lg">Manager tools</CardTitle>
               <CardDescription>
-                Review submitted reports and manage team members.
+                Review the team&apos;s reports, track trends, and manage members.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
@@ -75,13 +80,15 @@ export default async function DashboardPage() {
                   href="/reviews/insights"
                   className="font-medium text-primary underline-offset-4 hover:underline"
                 >
-                  Open the insights dashboard
+                  Open visual insights
+                </Link>
+                <Link
+                  href="/admin"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Manage members &amp; roles
                 </Link>
               </div>
-              <p>
-                Head to the <span className="font-medium">Admin</span> area to
-                manage roles.
-              </p>
             </CardContent>
           </Card>
         ) : null}

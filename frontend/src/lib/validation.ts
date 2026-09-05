@@ -74,3 +74,33 @@ export function validateRegister(values: RegisterValues): RegisterFieldErrors {
 
   return errors;
 }
+
+export interface InviteValues {
+  name: string;
+  email: string;
+  /** "" means the server should auto-generate one. */
+  password: string;
+}
+
+export type InviteFieldErrors = Partial<Record<keyof InviteValues, string>>;
+
+/** Client-side checks for inviting a team member. Mirrors the server action. */
+export function validateInvite(values: InviteValues): InviteFieldErrors {
+  const errors: InviteFieldErrors = {};
+
+  if (!values.name.trim()) {
+    errors.name = "Enter the team member's full name.";
+  }
+
+  if (!values.email.trim()) {
+    errors.email = "Enter an email address.";
+  } else if (!isValidEmail(values.email)) {
+    errors.email = "Enter a valid email address, e.g. you@example.com.";
+  }
+
+  if (values.password && values.password.length < MIN_PASSWORD_LENGTH) {
+    errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+
+  return errors;
+}

@@ -1,7 +1,7 @@
 import { AlertCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/session";
-import { isManagerOrAdmin, type User } from "@/lib/types";
+import { isManager, type User } from "@/lib/types";
 import { getAssignableUsers, getProjects } from "@/lib/projects";
 import {
   Card,
@@ -17,11 +17,11 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
   const user = await requireUser("/projects");
-  const canManage = isManagerOrAdmin(user.role);
+  const canManage = isManager(user.role);
 
   const projectsResult = await getProjects();
 
-  // Member assignment is Manager/Admin-only and needs the user roster, which
+  // Member assignment is Manager-only and needs the user roster, which
   // only they can read — so only fetch it when it will be used.
   let assignableUsers: User[] = [];
   let usersError: string | undefined;
@@ -34,11 +34,11 @@ export default async function ProjectsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-primary">Projects &amp; categories</h1>
+        <h1 className="text-2xl font-semibold text-primary">Projects</h1>
         <p className="text-muted-foreground">
           {canManage
-            ? "Create the projects and categories that weekly report entries are filed under, and manage who is on each."
-            : "Projects and categories you can file your weekly report entries under."}
+            ? "Create the projects that weekly report entries are filed under, and manage who is on each."
+            : "Projects you can file your weekly report entries under."}
         </p>
       </div>
 
@@ -48,8 +48,8 @@ export default async function ProjectsPage() {
           <CardDescription>
             e.g. Client A, Internal Tooling, R&amp;D, Marketing.
             {canManage
-              ? " Only Managers and Admins can add, edit, or delete."
-              : " Only Managers and Admins can change these."}
+              ? " Only Managers can add, edit, or delete."
+              : " Only Managers can change these."}
           </CardDescription>
         </CardHeader>
         <CardContent>

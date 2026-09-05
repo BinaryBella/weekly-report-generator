@@ -42,7 +42,7 @@ export default function RegisterPage() {
           <CardHeader className="space-y-1">
             <CardTitle>Create your account</CardTitle>
             <CardDescription>
-              New accounts start as a Team Member. An admin can change your role
+              New accounts start as a Team Member. A Manager can change your role
               later.
             </CardDescription>
           </CardHeader>

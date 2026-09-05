@@ -234,7 +234,7 @@ export function validateReportInput(input: ReportInput): ReportFieldErrors {
   const errors: ReportFieldErrors = {};
   const clean = cleanReportInput(input);
 
-  if (!clean.project_id) errors.project_id = "Choose a project / category.";
+  if (!clean.project_id) errors.project_id = "Choose a project.";
   if (!clean.week_start_date) {
     errors.week_start_date = "Pick the week start date.";
   }
@@ -267,6 +267,28 @@ export function validateReportInput(input: ReportInput): ReportFieldErrors {
   );
   if (namelessRow) {
     errors.tasks_completed = "Give every task a name, or remove the empty row.";
+  }
+
+  // Numeric bounds on the task table: percentages 0–100, hours never negative.
+  const badTaskNumbers = input.tasks_completed.some(
+    (t) =>
+      t.task_name.trim() &&
+      (t.planned_percentage < 0 ||
+        t.planned_percentage > 100 ||
+        t.actual_percentage < 0 ||
+        t.actual_percentage > 100 ||
+        t.time_planned_hours < 0 ||
+        t.time_spent_hours < 0)
+  );
+  if (badTaskNumbers && !errors.tasks_completed) {
+    errors.tasks_completed =
+      "Percentages must be between 0 and 100, and hours can't be negative.";
+  }
+
+  // Optional hours breakdown, when filled in, must be non-negative.
+  const h = input.hours_worked_breakdown;
+  if (h && HOURS_TYPES.some((k) => h[k] < 0)) {
+    errors.hours_worked_breakdown = "Hours can't be negative.";
   }
 
   if (clean.notes_or_links && clean.notes_or_links.length > NOTES_MAX) {

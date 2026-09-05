@@ -34,6 +34,14 @@ function isProjectError(status: number, detail: string): boolean {
   return status === 400 && /project/i.test(detail);
 }
 
+/** Map a backend save failure onto the right field, or a general message. */
+function toSaveError(status: number, detail: string): ReportActionState {
+  if (isProjectError(status, detail)) {
+    return { fieldErrors: { project_id: detail } };
+  }
+  return { error: detail };
+}
+
 /**
  * Create a weekly report in DRAFT for the current user. Backend:
  * `POST /reports/` — always creates a DRAFT owned by the caller.
@@ -55,10 +63,7 @@ export async function createReportAction(
 
   if (!res.ok) {
     const detail = await readErrorDetail(res, "Could not save the report.");
-    if (isProjectError(res.status, detail)) {
-      return { fieldErrors: { project_id: detail } };
-    }
-    return { error: detail };
+    return toSaveError(res.status, detail);
   }
 
   const report = (await res.json()) as Report;
@@ -88,10 +93,7 @@ export async function updateReportAction(
 
   if (!res.ok) {
     const detail = await readErrorDetail(res, "Could not save the report.");
-    if (isProjectError(res.status, detail)) {
-      return { fieldErrors: { project_id: detail } };
-    }
-    return { error: detail };
+    return toSaveError(res.status, detail);
   }
 
   revalidatePath(LIST_PATH);

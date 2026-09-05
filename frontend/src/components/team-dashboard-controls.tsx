@@ -143,7 +143,7 @@ export function TeamReportFilters({
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="f-project">Project / category</Label>
+        <Label htmlFor="f-project">Project</Label>
         <select
           id="f-project"
           className={selectClass}

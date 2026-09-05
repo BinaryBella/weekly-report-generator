@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 import { getManagerInsights, TREND_WEEKS, type ManagerInsights } from "@/lib/dashboard";
 import { formatDate, mostRecentMonday } from "@/lib/format";
@@ -109,13 +108,6 @@ export default async function InsightsDashboardPage({
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="space-y-1">
-        <Link
-          href="/reviews"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Team dashboard
-        </Link>
         <h1 className="text-2xl font-semibold text-primary">
           Dashboard &amp; insights
         </h1>

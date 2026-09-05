@@ -4,7 +4,7 @@ import { MANAGER_ROLES } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 /**
- * Manager/Admin-only review area. A Team Member who reaches any `/reviews/*`
+ * Manager-only review area. A Team Member who reaches any `/reviews/*`
  * route is redirected to their own dashboard by `requireRole`.
  */
 export default async function ReviewsLayout({

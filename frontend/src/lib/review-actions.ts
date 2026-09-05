@@ -24,7 +24,7 @@ function revalidateReport(reportId: string): void {
 
 /**
  * Approve a submitted report. Backend: `POST /reports/{id}/approve`
- * (Manager/Admin only) — SUBMITTED → APPROVED. Managers never touch the report
+ * (Manager only) — SUBMITTED → APPROVED. Managers never touch the report
  * content, only its status.
  */
 export async function approveReportAction(
@@ -51,7 +51,7 @@ export async function approveReportAction(
 
 /**
  * Send a submitted report back for correction with one general comment.
- * Backend: `POST /reports/{id}/request-changes` (Manager/Admin only) —
+ * Backend: `POST /reports/{id}/request-changes` (Manager only) —
  * SUBMITTED → NEEDS_CORRECTION. The reviewed content is snapshotted into the
  * report's version history first, so the resubmission does not overwrite it.
  */

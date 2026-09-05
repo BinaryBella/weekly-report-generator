@@ -32,7 +32,7 @@ export async function getProjects(
 
 /**
  * Load the users that can be assigned to a project. The backend only lets a
- * Manager/Admin enumerate users, which matches who is allowed to edit project
+ * Manager enumerate users, which matches who is allowed to edit project
  * membership, so this is safe to call from the projects management screen.
  */
 export async function getAssignableUsers(): Promise<Result<User[]>> {

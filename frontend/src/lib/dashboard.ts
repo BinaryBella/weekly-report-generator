@@ -422,7 +422,8 @@ export async function getManagerInsights(options: {
   const activity = activityItems
     .map((item) => toActivity(item, userName, projectName))
     .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
-    .slice(0, 15);
+    // The feed is now searchable + paged on the client, so keep the full window.
+    .slice(0, 60);
 
   return {
     data: {
