@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/session";
 import { isManager } from "@/lib/types";
 import { AppSidebar, AppSidebarMobile } from "@/components/app-sidebar";
 import { BackButton } from "@/components/back-button";
+import { ChatWidget } from "@/components/chat-widget";
 import { LogoutButton } from "@/components/logout-button";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,8 @@ export default async function AppLayout({
           </div>
         </main>
       </div>
+
+      {canManage ? <ChatWidget /> : null}
     </div>
   );
 }

@@ -301,3 +301,34 @@ export interface TeamSectionResponse {
   project_id: string | null;
   entries: TeamSectionEntry[];
 }
+
+/**
+ * Shapes for the AI chat assistant (backend `app/schemas/chat.py`, Manager
+ * only). Two capabilities: a persisted multi-turn Q&A thread, and a one-shot
+ * team-activity summary.
+ */
+
+/** Matches the backend `ChatSessionResponse` model. */
+export interface ChatSession {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Matches the backend `ChatMessageResponse` model. */
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+/** Matches the backend `TeamSummaryResponse` model (`POST /chat/summary`). */
+export interface TeamSummary {
+  summary: string;
+  project_name_or_id: string | null;
+  date_from: string;
+  date_to: string;
+  generated_at: string;
+}
