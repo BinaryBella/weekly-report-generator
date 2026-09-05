@@ -47,7 +47,7 @@ function parseProjectForm(formData: FormData): ParsedForm {
 }
 
 /**
- * Create a project/category. Backend: `POST /projects/` (Manager/Admin only).
+ * Create a project. Backend: `POST /projects/` (Manager only).
  * A ``400`` from the backend (duplicate name) is surfaced on the name field.
  */
 export async function createProjectAction(
@@ -80,7 +80,7 @@ export async function createProjectAction(
 }
 
 /**
- * Update a project/category. Backend: `PUT /projects/{id}` (Manager/Admin only).
+ * Update a project. Backend: `PUT /projects/{id}` (Manager only).
  * `id` is bound by the caller, so the signature still matches `useActionState`.
  */
 export async function updateProjectAction(
@@ -114,7 +114,7 @@ export async function updateProjectAction(
 }
 
 /**
- * Delete a project/category. Backend: `DELETE /projects/{id}` (Manager/Admin
+ * Delete a project. Backend: `DELETE /projects/{id}` (Manager
  * only). The backend soft-deletes (deactivates) a project that reports still
  * reference and hard-deletes an unreferenced one; the caller is told which.
  */
@@ -142,7 +142,7 @@ export async function deleteProjectAction(
 
 /**
  * Replace the full set of team members assigned to a project. Backend:
- * `PUT /projects/{id}/members` (Manager/Admin only). Sending an unknown user id
+ * `PUT /projects/{id}/members` (Manager only). Sending an unknown user id
  * returns ``400``.
  */
 export async function assignProjectMembersAction(

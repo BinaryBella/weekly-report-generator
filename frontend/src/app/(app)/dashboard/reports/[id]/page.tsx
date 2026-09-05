@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import { getProjects } from "@/lib/projects";
 import { getReport } from "@/lib/reports";
@@ -14,18 +13,6 @@ import { ReportStatusBadge } from "@/components/report-status-badge";
 import { ReportVersionHistory } from "@/components/report-version-history";
 
 export const dynamic = "force-dynamic";
-
-function BackLink() {
-  return (
-    <Link
-      href="/dashboard/reports"
-      className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-    >
-      <ArrowLeft className="h-4 w-4" />
-      Your reports
-    </Link>
-  );
-}
 
 export default async function ReportDetailPage({
   params,
@@ -43,7 +30,6 @@ export default async function ReportDetailPage({
   if ("error" in reportResult) {
     return (
       <div className="mx-auto max-w-4xl space-y-4">
-        <BackLink />
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Couldn&apos;t open this report</AlertTitle>
@@ -62,8 +48,6 @@ export default async function ReportDetailPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <BackLink />
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-primary">Weekly report</h1>

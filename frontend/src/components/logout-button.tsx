@@ -15,6 +15,7 @@ function InnerButton() {
       size="sm"
       disabled={pending}
       aria-busy={pending}
+      className="text-[#1e50ae]"
     >
       <LogOut className="mr-2 h-4 w-4" />
       {pending ? "Signing out…" : "Sign out"}

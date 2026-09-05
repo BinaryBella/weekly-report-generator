@@ -24,7 +24,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 /**
- * Create/edit form for a project/category. Used for both flows: pass a
+ * Create/edit form for a project. Used for both flows: pass a
  * `project` to edit it, omit it to create a new one. Calls `onSuccess` with the
  * saved record once the backend accepts it.
  */
@@ -83,7 +83,7 @@ export function ProjectForm({
           id="project-description"
           name="description"
           defaultValue={project?.description ?? ""}
-          placeholder="Optional — what this project / category covers."
+          placeholder="Optional — what this project covers."
           maxLength={500}
           rows={3}
         />

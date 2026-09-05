@@ -1,9 +1,17 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   createReportAction,
@@ -14,7 +22,6 @@ import {
   HOURS_TYPES,
   HOURS_TYPE_LABELS,
   NOTES_MAX,
-  TASKS_PLANNED_MAX,
   TASK_NAME_MAX,
   TASK_PRIORITIES,
   TASK_PRIORITY_LABELS,
@@ -28,6 +35,7 @@ import {
   validateReportInput,
   type ReportInput,
 } from "@/lib/report-schema";
+import { addDays } from "@/lib/format";
 import type {
   Project,
   Report,
@@ -38,6 +46,7 @@ import type {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { FieldError } from "@/components/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +58,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 function toInt(value: string): number {
   const n = Number.parseInt(value, 10);
@@ -88,11 +98,66 @@ export function ReportForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [intent, setIntent] = useState<"draft" | "submit" | null>(null);
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Which completed-task accordion is expanded (single-open, to keep the form
+  // compact). On an edit, start with the most recent task open.
+  const [openTaskIndex, setOpenTaskIndex] = useState<number | null>(() =>
+    report && report.tasks_completed.length > 0
+      ? report.tasks_completed.length - 1
+      : null
+  );
+
+  // "Tasks planned for next week" is stored on the report as one newline-joined
+  // string; the form edits it as a list of task rows and re-joins on every
+  // change (blank rows are dropped from the stored value, not from the UI).
+  const [plannedTasks, setPlannedTasks] = useState<string[]>(() => {
+    const rows = form.tasks_planned_next_week
+      ? form.tasks_planned_next_week.split("\n")
+      : [];
+    return rows.length > 0 ? rows : [""];
+  });
 
   const hours = form.hours_worked_breakdown ?? emptyHours();
   const noProjects = !projectsError && projects.length === 0;
   const disabled = pending || noProjects || Boolean(projectsError);
+
+  // -- Unsaved-changes tracking ---------------------------------------------
+  const initialSnapshot = useMemo(
+    () => JSON.stringify({ form: report ? reportToInput(report) : blankReportInput() }),
+    [report]
+  );
+  const savedRef = useRef(false);
+  const dirty =
+    !savedRef.current && JSON.stringify({ form }) !== initialSnapshot;
+
+  // Warn on tab close / hard navigation while there are unsaved edits.
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  const cancelHref =
+    mode === "edit" && report
+      ? `/dashboard/reports/${report.id}`
+      : "/dashboard/reports";
+
+  function leave() {
+    savedRef.current = true; // allow the navigation without the guard firing
+    router.push(cancelHref);
+  }
+
+  function handleCancel() {
+    if (dirty) setCancelConfirmOpen(true);
+    else leave();
+  }
 
   // Keep the report's current project selectable even if it was later
   // deactivated (edit / correction flow).
@@ -122,6 +187,9 @@ export function ReportForm({
     }));
   }
   function addTask() {
+    // The new task lands at the current end of the list; collapse whatever was
+    // open and expand the new one for editing.
+    setOpenTaskIndex(form.tasks_completed.length);
     setForm((f) => ({
       ...f,
       tasks_completed: [...f.tasks_completed, emptyTask()],
@@ -132,6 +200,35 @@ export function ReportForm({
       ...f,
       tasks_completed: f.tasks_completed.filter((_, i) => i !== index),
     }));
+    setOpenTaskIndex((cur) => {
+      if (cur === null) return null;
+      if (cur === index) return null; // the open one was removed
+      return index < cur ? cur - 1 : cur; // indices above it shifted down
+    });
+  }
+  function toggleTask(index: number) {
+    setOpenTaskIndex((cur) => (cur === index ? null : index));
+  }
+
+  // -- Tasks planned for next week (list of rows -> newline-joined string) ---
+  function commitPlanned(rows: string[]) {
+    setPlannedTasks(rows);
+    patch({
+      tasks_planned_next_week: rows
+        .map((row) => row.trim())
+        .filter(Boolean)
+        .join("\n"),
+    });
+  }
+  function addPlannedTask() {
+    commitPlanned([...plannedTasks, ""]);
+  }
+  function updatePlannedTask(index: number, value: string) {
+    commitPlanned(plannedTasks.map((row, i) => (i === index ? value : row)));
+  }
+  function removePlannedTask(index: number) {
+    const rows = plannedTasks.filter((_, i) => i !== index);
+    commitPlanned(rows.length > 0 ? rows : [""]);
   }
 
   // -- Blockers / achievements (shared list shape) ---------------------
@@ -235,12 +332,28 @@ export function ReportForm({
         )
       : -1;
 
+  /** Validate, then open the submit confirmation (only for the submit action). */
+  function requestSubmit() {
+    setFormError(null);
+    const errors = validateReportInput(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      const message = "Please fix the highlighted fields before submitting.";
+      setFormError(message);
+      toast.error(message);
+      return;
+    }
+    setSubmitConfirmOpen(true);
+  }
+
   function save(submitAfter: boolean) {
     setFormError(null);
     const errors = validateReportInput(form);
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setFormError("Please fix the highlighted fields before saving.");
+      const message = "Please fix the highlighted fields before saving.";
+      setFormError(message);
+      toast.error(message);
       return;
     }
 
@@ -253,12 +366,13 @@ export function ReportForm({
 
       if (!saved.ok) {
         setFieldErrors(saved.fieldErrors ?? {});
-        setFormError(
+        const message =
           saved.error ??
-            (saved.fieldErrors
-              ? "Please fix the highlighted fields before saving."
-              : "Could not save the report.")
-        );
+          (saved.fieldErrors
+            ? "Please fix the highlighted fields before saving."
+            : "Could not save the report.");
+        setFormError(message);
+        toast.error(message);
         setIntent(null);
         return;
       }
@@ -269,14 +383,27 @@ export function ReportForm({
         const submitted = await submitReportAction(id);
         if (!submitted.ok) {
           // The content did save — send them to the report so they can retry.
-          setFormError(submitted.error ?? "Could not submit the report.");
+          const message = submitted.error ?? "Could not submit the report.";
+          setFormError(message);
+          toast.error(message);
           setIntent(null);
+          savedRef.current = true;
           router.push(`/dashboard/reports/${id}`);
           router.refresh();
           return;
         }
       }
 
+      savedRef.current = true;
+      toast.success(
+        submitAfter
+          ? report?.status === "NEEDS_CORRECTION"
+            ? "Corrections resubmitted for review."
+            : "Report submitted for review."
+          : mode === "create"
+            ? "Draft created."
+            : "Draft saved."
+      );
       router.push(`/dashboard/reports/${id}`);
       router.refresh();
     });
@@ -296,24 +423,43 @@ export function ReportForm({
         </Alert>
       ) : null}
 
-      {/* 1. Week / date range */}
-      <FormSection step={1} title="Week / date range">
+      <p className="text-sm text-muted-foreground">
+        <span className="text-destructive">*</span> indicates a required field.
+      </p>
+
+      {/* 1. Week range */}
+      <FormSection step={1} title="Week Range" required>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="week-start">Week start</Label>
+            <Label htmlFor="week-start">
+              Week start
+              <RequiredMark />
+            </Label>
             <Input
               id="week-start"
               type="date"
+              aria-required
               value={form.week_start_date}
-              onChange={(e) => patch({ week_start_date: e.target.value })}
+              onChange={(e) => {
+                const start = e.target.value;
+                patch({
+                  week_start_date: start,
+                  // A weekly report always covers 7 days — fill the end date to match.
+                  week_end_date: start ? addDays(start, 6) : "",
+                });
+              }}
             />
             <FieldError message={fieldErrors.week_start_date} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="week-end">Week end</Label>
+            <Label htmlFor="week-end">
+              Week end
+              <RequiredMark />
+            </Label>
             <Input
               id="week-end"
               type="date"
+              aria-required
               value={form.week_end_date}
               onChange={(e) => patch({ week_end_date: e.target.value })}
             />
@@ -322,13 +468,13 @@ export function ReportForm({
         </div>
       </FormSection>
 
-      {/* 2. Project / category tag */}
-      <FormSection step={2} title="Project / category tag">
+      {/* 2. Project tag */}
+      <FormSection step={2} title="Project tag" required>
         {projectsError ? (
           <p className="text-sm text-destructive">{projectsError}</p>
         ) : noProjects ? (
           <p className="text-sm text-muted-foreground">
-            No active projects yet. Ask a Manager or Admin to create one on the{" "}
+            No active projects yet. Ask a Manager to create one on the{" "}
             <Link
               href="/projects"
               className="font-medium text-primary underline-offset-4 hover:underline"
@@ -343,7 +489,7 @@ export function ReportForm({
             onValueChange={(value) => patch({ project_id: value })}
           >
             <SelectTrigger id="project" className="sm:max-w-sm">
-              <SelectValue placeholder="Choose a project / category" />
+              <SelectValue placeholder="Choose a project" />
             </SelectTrigger>
             <SelectContent>
               {projectOptions.map((option) => (
@@ -367,29 +513,53 @@ export function ReportForm({
           </p>
         ) : (
           <div className="space-y-4">
-            {form.tasks_completed.map((task, index) => (
-              <div key={index} className="space-y-3 rounded-md border p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Task {index + 1}
-                  </span>
+            {form.tasks_completed.map((task, index) => {
+              const open = openTaskIndex === index;
+              const bodyId = `report-task-${index}`;
+              return (
+              <div key={index} className="rounded-md border">
+                <div className="flex items-center gap-2 p-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleTask(index)}
+                    aria-expanded={open}
+                    aria-controls={bodyId}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium"
+                  >
+                    <ChevronDown
+                      aria-hidden
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                        open && "rotate-180"
+                      )}
+                    />
+                    <span className="shrink-0">Task {index + 1}</span>
+                    <span className="truncate font-normal text-muted-foreground">
+                      {task.task_name.trim() || "Untitled task"}
+                    </span>
+                  </button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    className="shrink-0 text-destructive hover:text-destructive"
                     onClick={() => removeTask(index)}
                   >
                     <Trash2 className="mr-1 h-4 w-4" />
                     Remove
                   </Button>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                {open ? (
+                <div id={bodyId} className="grid gap-3 border-t p-4 sm:grid-cols-2">
                   <div className="space-y-1 sm:col-span-2">
-                    <Label>Task name</Label>
+                    <Label>
+                      Task name
+                      <RequiredMark />
+                    </Label>
                     <Input
                       value={task.task_name}
                       maxLength={TASK_NAME_MAX}
+                      aria-required
                       onChange={(e) =>
                         updateTask(index, { task_name: e.target.value })
                       }
@@ -435,34 +605,20 @@ export function ReportForm({
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1">
-                    <Label>Planned %</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={String(task.planned_percentage)}
-                      onChange={(e) =>
-                        updateTask(index, {
-                          planned_percentage: toInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Actual %</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={String(task.actual_percentage)}
-                      onChange={(e) =>
-                        updateTask(index, {
-                          actual_percentage: toInt(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
+                  <PercentSlider
+                    label="Planned %"
+                    value={task.planned_percentage}
+                    onChange={(value) =>
+                      updateTask(index, { planned_percentage: value })
+                    }
+                  />
+                  <PercentSlider
+                    label="Actual %"
+                    value={task.actual_percentage}
+                    onChange={(value) =>
+                      updateTask(index, { actual_percentage: value })
+                    }
+                  />
                   <div className="space-y-1">
                     <Label>Time planned (h)</Label>
                     <Input
@@ -492,7 +648,10 @@ export function ReportForm({
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-2">
-                    <Label>Output / deliverable produced</Label>
+                    <Label>
+                      Output / deliverable produced
+                      <OptionalMark />
+                    </Label>
                     <Textarea
                       rows={2}
                       value={task.output_deliverable ?? ""}
@@ -505,8 +664,10 @@ export function ReportForm({
                     />
                   </div>
                 </div>
+                ) : null}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
         <Button type="button" variant="outline" size="sm" onClick={addTask}>
@@ -516,14 +677,49 @@ export function ReportForm({
       </FormSection>
 
       {/* 4. Tasks planned for next week */}
-      <FormSection step={4} title="Tasks planned for next week">
-        <Textarea
-          rows={4}
-          value={form.tasks_planned_next_week}
-          maxLength={TASKS_PLANNED_MAX}
-          placeholder="What you plan to work on next week."
-          onChange={(e) => patch({ tasks_planned_next_week: e.target.value })}
-        />
+      <FormSection step={4} title="Tasks planned for next week" required>
+        <p className="text-sm text-muted-foreground">
+          Add the tasks you plan to work on next week, one at a time.
+        </p>
+        <ul className="space-y-3">
+          {plannedTasks.map((text, index) => (
+            <li key={index} className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Task {index + 1}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  disabled={plannedTasks.length === 1 && !text.trim()}
+                  onClick={() => removePlannedTask(index)}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  Remove
+                </Button>
+              </div>
+              <Textarea
+                rows={2}
+                value={text}
+                maxLength={TEXT_MAX}
+                aria-label={`Task ${index + 1} planned for next week`}
+                placeholder="Describe a task planned for next week."
+                onChange={(e) => updatePlannedTask(index, e.target.value)}
+              />
+            </li>
+          ))}
+        </ul>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addPlannedTask}
+        >
+          <Plus className="mr-1 h-4 w-4" />
+          Add another task
+        </Button>
         <FieldError message={fieldErrors.tasks_planned_next_week} />
       </FormSection>
 
@@ -575,20 +771,25 @@ export function ReportForm({
           Record an hours breakdown for this week
         </label>
         {hoursEnabled ? (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {HOURS_TYPES.map((key) => (
-              <div key={key} className="space-y-1">
-                <Label>{HOURS_TYPE_LABELS[key]}</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  value={String(hours[key])}
-                  onChange={(e) => updateHours(key, toNum(e.target.value))}
-                />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+              {HOURS_TYPES.map((key) => (
+                <div key={key} className="min-w-0 space-y-1">
+                  <Label className="block truncate" title={HOURS_TYPE_LABELS[key]}>
+                    {HOURS_TYPE_LABELS[key]}
+                  </Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={String(hours[key])}
+                    onChange={(e) => updateHours(key, toNum(e.target.value))}
+                  />
+                </div>
+              ))}
+            </div>
+            <FieldError message={fieldErrors.hours_worked_breakdown} />
+          </>
         ) : null}
       </FormSection>
 
@@ -609,13 +810,7 @@ export function ReportForm({
           type="button"
           variant="outline"
           disabled={pending}
-          onClick={() =>
-            router.push(
-              mode === "edit" && report
-                ? `/dashboard/reports/${report.id}`
-                : "/dashboard/reports"
-            )
-          }
+          onClick={handleCancel}
         >
           Cancel
         </Button>
@@ -634,11 +829,7 @@ export function ReportForm({
             "Save draft"
           )}
         </Button>
-        <Button
-          type="button"
-          disabled={disabled}
-          onClick={() => save(true)}
-        >
+        <Button type="button" disabled={disabled} onClick={requestSubmit}>
           {pending && intent === "submit" ? (
             <>
               <Spinner size="sm" className="mr-2" />
@@ -649,18 +840,107 @@ export function ReportForm({
           )}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={submitConfirmOpen}
+        onOpenChange={setSubmitConfirmOpen}
+        title={
+          report?.status === "NEEDS_CORRECTION"
+            ? "Resubmit this report for review?"
+            : "Submit this report for manager review?"
+        }
+        description="Once submitted, you can only edit it again if your manager sends it back for correction."
+        confirmLabel={
+          report?.status === "NEEDS_CORRECTION" ? "Resubmit" : "Submit"
+        }
+        onConfirm={() => {
+          setSubmitConfirmOpen(false);
+          save(true);
+        }}
+      />
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onOpenChange={setCancelConfirmOpen}
+        title="Discard unsaved changes?"
+        description="You have edits that haven't been saved. Leaving now will lose them."
+        confirmLabel="Discard changes"
+        cancelLabel="Keep editing"
+        destructive
+        onConfirm={() => {
+          setCancelConfirmOpen(false);
+          leave();
+        }}
+      />
     </form>
+  );
+}
+
+/**
+ * 0–100 % slider for the completed-tasks table (Planned % / Actual %), with the
+ * current value shown to the right. Sits in one column of the task-card grid so
+ * Planned and Actual share a row.
+ */
+function PercentSlider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={value}
+          aria-label={label}
+          onChange={(e) => onChange(toInt(e.target.value))}
+          className="h-2 w-full cursor-pointer accent-primary"
+        />
+        <output className="w-10 shrink-0 text-right text-sm font-medium tabular-nums">
+          {value}%
+        </output>
+      </div>
+    </div>
+  );
+}
+
+/** Red "*" shown after a required field's label. Matches the destructive colour
+ * used for validation errors so the whole form's "this needs attention" cue is
+ * one colour. */
+function RequiredMark() {
+  return (
+    <span aria-hidden="true" className="ml-0.5 text-destructive">
+      *
+    </span>
+  );
+}
+
+/** Muted "(optional)" tag for a single optional field inside an otherwise
+ * required-looking group. */
+function OptionalMark() {
+  return (
+    <span className="ml-1 font-normal text-muted-foreground">(optional)</span>
   );
 }
 
 function FormSection({
   step,
   title,
+  required,
   optional,
   children,
 }: {
   step: number;
   title: string;
+  required?: boolean;
   optional?: boolean;
   children: ReactNode;
 }) {
@@ -669,6 +949,7 @@ function FormSection({
       <div className="flex items-baseline gap-2">
         <h2 className="text-base font-semibold">
           <span className="text-muted-foreground">{step}.</span> {title}
+          {required ? <RequiredMark /> : null}
         </h2>
         {optional ? (
           <span className="text-xs text-muted-foreground">Optional</span>
@@ -679,7 +960,8 @@ function FormSection({
   );
 }
 
-/** Section 5 and 6 share this shape: a list of text rows, one flagged as key. */
+/** Section 5 and 6 share this shape: a list of text rows, one flagged as key.
+ * Both are optional. */
 function FlaggedListSection({
   step,
   title,
@@ -712,7 +994,7 @@ function FlaggedListSection({
   onSetKey: (index: number) => void;
 }) {
   return (
-    <FormSection step={step} title={title}>
+    <FormSection step={step} title={title} optional>
       <p className="text-sm text-muted-foreground">{description}</p>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyText}</p>

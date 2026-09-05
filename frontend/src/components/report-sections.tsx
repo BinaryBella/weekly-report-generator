@@ -41,7 +41,7 @@ export function ReportSections({
       </Section>
 
       {projectName !== undefined ? (
-        <Section title="Project / category">
+        <Section title="Project">
           <p>{projectName}</p>
         </Section>
       ) : null}

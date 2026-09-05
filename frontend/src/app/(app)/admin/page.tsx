@@ -31,18 +31,18 @@ async function fetchUsers(): Promise<
 }
 
 export default async function AdminPage() {
+  // Manager-gated by the layout, and Manager is the privileged role, so anyone
+  // who reaches this page can assign roles.
   const me = await requireRole(MANAGER_ROLES, "/admin");
   const result = await fetchUsers();
-  const canEditRoles = me.role === "Admin";
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-primary">Team &amp; roles</h1>
         <p className="text-muted-foreground">
-          {canEditRoles
-            ? "Assign roles to control who can review reports across the team."
-            : "You can view the team roster. Only an Admin can change roles."}
+          Invite team members, assign roles, and remove members who no longer
+          need access.
         </p>
       </div>
 
@@ -50,8 +50,10 @@ export default async function AdminPage() {
         <CardHeader>
           <CardTitle className="text-lg">Team members</CardTitle>
           <CardDescription>
-            Roles: Team Member (own reports) · Manager / Admin (review all
-            reports).
+            Roles: Team Member (own reports) · Manager (reviews all reports and
+            manages the team). Removing a member with existing reports or
+            project assignments disables their account instead of deleting it,
+            so that history stays intact.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -65,7 +67,7 @@ export default async function AdminPage() {
             <UsersTable
               users={result.users}
               currentUserId={me.id}
-              canEditRoles={canEditRoles}
+              canEditRoles
             />
           )}
         </CardContent>

@@ -1,6 +1,11 @@
 /** Shapes returned by the backend auth API (see backend `app/schemas/auth.py`). */
 
-export type Role = "Team Member" | "Manager" | "Admin";
+/**
+ * The system has exactly two roles. `"Manager"` is the fully privileged
+ * ("admin") role: it reviews reports, manages projects, and manages users
+ * and their roles.
+ */
+export type Role = "Team Member" | "Manager";
 
 export type UserStatus = "active" | "disabled";
 
@@ -30,23 +35,27 @@ export interface AccessTokenResponse {
   expires_in: number;
 }
 
-export const ROLES: Role[] = ["Team Member", "Manager", "Admin"];
+export const ROLES: Role[] = ["Team Member", "Manager"];
 
-/** Roles allowed into the manager/admin area. */
-export const MANAGER_ROLES: Role[] = ["Manager", "Admin"];
+/** Roles allowed into the manager area. */
+export const MANAGER_ROLES: Role[] = ["Manager"];
 
-export function isManagerOrAdmin(role: Role): boolean {
-  return role === "Manager" || role === "Admin";
+export function isManager(role: Role): boolean {
+  return role === "Manager";
 }
 
-/** Where a user lands after authenticating, based on their role. */
+/**
+ * Where a user lands after authenticating. A Manager goes straight to the team
+ * dashboard (their primary workspace); a Team Member — who has no dashboard —
+ * lands on their personal home.
+ */
 export function landingPathForRole(role: Role): string {
-  return isManagerOrAdmin(role) ? "/admin" : "/dashboard";
+  return isManager(role) ? "/reviews" : "/dashboard";
 }
 
 /**
  * Shapes returned by the backend projects API (see backend
- * `app/schemas/project.py`). A "project" is also referred to as a "category" in
+ * `app/schemas/project.py`). A "project" is also referred to as a "project" in
  * the product — the two are the same entity.
  */
 

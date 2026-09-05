@@ -12,7 +12,7 @@ import type {
   TeamStatusResponse,
 } from "@/lib/types";
 
-const MANAGER_ONLY = "Only managers and admins can view the team dashboard.";
+const MANAGER_ONLY = "Only managers can view the team dashboard.";
 
 const EXPIRED = "Your session has expired. Sign in again.";
 
@@ -45,7 +45,7 @@ export async function getMyReports(options?: {
 
 /**
  * Load every team member's reports for the manager review dashboard. Backend:
- * `GET /reports/` (Manager/Admin only). Private drafts are never included. All
+ * `GET /reports/` (Manager only). Private drafts are never included. All
  * filters are optional and AND-combined.
  */
 export async function getTeamReports(options?: {
@@ -83,7 +83,7 @@ export async function getTeamReports(options?: {
 
 /**
  * Per-member submission status for a selected week. Backend:
- * `GET /reports/dashboard/status` (Manager/Admin only). One row per team member,
+ * `GET /reports/dashboard/status` (Manager only). One row per team member,
  * including those who have not started a report for that week.
  */
 export async function getTeamWeekStatus(
@@ -110,7 +110,7 @@ export async function getTeamWeekStatus(
 
 /**
  * One report section lined up across the whole team for a selected week.
- * Backend: `GET /reports/dashboard/section/{section}` (Manager/Admin only).
+ * Backend: `GET /reports/dashboard/section/{section}` (Manager only).
  * A member's section content is `null` while their report is a private draft.
  */
 export async function getTeamSection(
@@ -139,7 +139,7 @@ export async function getTeamSection(
 
 /**
  * Load one report in full. Backend: `GET /reports/{id}` — the owner always; a
- * Manager/Admin only once it has left DRAFT. A `403`/`404` is turned into a
+ * Manager only once it has left DRAFT. A `403`/`404` is turned into a
  * friendly message rather than a raw error.
  */
 export async function getReport(reportId: string): Promise<Result<Report>> {

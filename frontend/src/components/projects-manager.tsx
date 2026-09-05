@@ -1,32 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Pencil,
-  Plus,
-  Trash2,
-  Users,
-  X,
-} from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
 
 import { deleteProjectAction } from "@/lib/project-actions";
 import type { Project, User } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { usePagedList } from "@/hooks/use-paged-list";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListPagination } from "@/components/ui/list-pagination";
+import { SearchInput } from "@/components/ui/search-input";
 import {
   Dialog,
   DialogContent,
@@ -44,8 +30,6 @@ import {
 } from "@/components/ui/table";
 import { ProjectForm } from "@/components/project-form";
 import { ProjectMembersDialog } from "@/components/project-members-dialog";
-
-type Feedback = { type: "success" | "error"; message: string };
 
 function StatusBadge({ active }: { active: boolean }) {
   return (
@@ -77,8 +61,17 @@ export function ProjectsManager({
   const [editing, setEditing] = useState<Project | null>(null);
   const [managingMembers, setManagingMembers] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [deletePending, startDelete] = useTransition();
+
+  const sortedProjects = useMemo(
+    () => [...projects].sort((a, b) => a.name.localeCompare(b.name)),
+    [projects]
+  );
+  const list = usePagedList(
+    sortedProjects,
+    (p) => `${p.name} ${p.description ?? ""} ${p.is_active ? "active" : "inactive"}`,
+    10
+  );
 
   function confirmDelete() {
     if (!deleteTarget) return;
@@ -86,59 +79,51 @@ export function ProjectsManager({
     startDelete(async () => {
       const res = await deleteProjectAction(target.id);
       if (!res.ok) {
-        setFeedback({
-          type: "error",
-          message: res.error ?? "Could not delete the project.",
-        });
+        toast.error(res.error ?? "Could not delete the project.");
+      } else if (res.result?.soft_deleted) {
+        toast.success(
+          `"${target.name}" is in use by reports, so it was deactivated.`
+        );
       } else {
-        setFeedback({
-          type: "success",
-          message:
-            res.result?.detail ??
-            (res.result?.soft_deleted
-              ? `"${target.name}" is in use by reports, so it was deactivated.`
-              : `Deleted "${target.name}".`),
-        });
+        toast.success(`Deleted "${target.name}".`);
       }
       setDeleteTarget(null);
     });
   }
 
-  const colSpan = canManage ? 5 : 4;
-
   return (
     <div className="space-y-4">
-      {canManage ? (
-        <div className="flex justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <SearchInput
+          value={list.query}
+          onChange={list.setQuery}
+          placeholder="Search projects…"
+        />
+        {canManage ? (
           <Button type="button" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add project
           </Button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
-      {feedback ? (
-        <Alert variant={feedback.type === "success" ? "success" : "destructive"}>
-          {feedback.type === "success" ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
-          <AlertDescription className="flex items-start justify-between gap-4">
-            <span>{feedback.message}</span>
-            <button
-              type="button"
-              onClick={() => setFeedback(null)}
-              className="opacity-70 transition-opacity hover:opacity-100"
-              aria-label="Dismiss"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="rounded-md border">
+      {list.total === 0 ? (
+        <EmptyState
+          title={
+            list.query
+              ? "No projects match your search"
+              : "No projects yet"
+          }
+          description={
+            list.query
+              ? "Try a different search term."
+              : canManage
+                ? 'Use "Add project" to create the first one.'
+                : "No projects have been created yet."
+          }
+        />
+      ) : (
+        <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -152,19 +137,7 @@ export function ProjectsManager({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={colSpan}
-                  className="py-10 text-center text-muted-foreground"
-                >
-                  {canManage
-                    ? 'No projects yet. Use "Add project" to create the first one.'
-                    : "No projects have been created yet."}
-                </TableCell>
-              </TableRow>
-            ) : (
-              projects.map((project) => (
+            {list.pageItems.map((project) => (
                 <TableRow key={project.id}>
                   <TableCell className="font-medium">{project.name}</TableCell>
                   <TableCell className="max-w-xs text-muted-foreground">
@@ -220,18 +193,32 @@ export function ProjectsManager({
                     </TableCell>
                   ) : null}
                 </TableRow>
-              ))
-            )}
+              ))}
           </TableBody>
         </Table>
-      </div>
+        </div>
+      )}
+
+      {list.total > 0 ? (
+        <ListPagination
+          page={list.page}
+          pageCount={list.pageCount}
+          pageSize={list.pageSize}
+          total={list.total}
+          rangeStart={list.rangeStart}
+          rangeEnd={list.rangeEnd}
+          onPageChange={list.setPage}
+          onPageSizeChange={list.setPageSize}
+          itemLabel="projects"
+        />
+      ) : null}
 
       {/* Create ------------------------------------------------------------- */}
       {canManage ? (
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New project / category</DialogTitle>
+              <DialogTitle>New project</DialogTitle>
               <DialogDescription>
                 Create a project that team members can file report entries
                 under.
@@ -240,10 +227,7 @@ export function ProjectsManager({
             <ProjectForm
               onSuccess={(project) => {
                 setCreateOpen(false);
-                setFeedback({
-                  type: "success",
-                  message: `Created "${project.name}".`,
-                });
+                toast.success(`Created "${project.name}".`);
               }}
               onCancel={() => setCreateOpen(false)}
             />
@@ -259,7 +243,7 @@ export function ProjectsManager({
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit project / category</DialogTitle>
+              <DialogTitle>Edit project</DialogTitle>
               <DialogDescription>
                 Update the details for{" "}
                 <span className="font-medium">{editing.name}</span>.
@@ -269,10 +253,7 @@ export function ProjectsManager({
               project={editing}
               onSuccess={(project) => {
                 setEditing(null);
-                setFeedback({
-                  type: "success",
-                  message: `Saved changes to "${project.name}".`,
-                });
+                toast.success(`Saved changes to "${project.name}".`);
               }}
               onCancel={() => setEditing(null)}
             />
@@ -290,45 +271,24 @@ export function ProjectsManager({
           onOpenChange={(open) => !open && setManagingMembers(null)}
           onSaved={(_project, message) => {
             setManagingMembers(null);
-            setFeedback({ type: "success", message });
+            toast.success(message);
           }}
         />
       ) : null}
 
       {/* Delete confirm --------------------------------------------------- */}
       {canManage ? (
-        <AlertDialog
+        <ConfirmDialog
           open={Boolean(deleteTarget)}
-          onOpenChange={(open) => !open && !deletePending && setDeleteTarget(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Delete &quot;{deleteTarget?.name}&quot;?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                This removes the project. If any report entries already
-                reference it, it is deactivated instead of deleted so past
-                reports stay intact. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deletePending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
-                disabled={deletePending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deletePending ? (
-                  <Spinner size="sm" className="mr-2" />
-                ) : null}
-                {deletePending ? "Deleting…" : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          onOpenChange={(open) => !open && setDeleteTarget(null)}
+          title={`Delete "${deleteTarget?.name ?? ""}"?`}
+          description="This removes the project. If any report entries already reference it, it is deactivated instead of deleted so past reports stay intact. This cannot be undone."
+          confirmLabel="Delete"
+          pendingLabel="Deleting…"
+          destructive
+          pending={deletePending}
+          onConfirm={confirmDelete}
+        />
       ) : null}
     </div>
   );

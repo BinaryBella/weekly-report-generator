@@ -7,14 +7,24 @@ import { NextResponse, type NextRequest } from "next/server";
  * navigation, so this is where a short-lived access token is refreshed from the
  * long-lived refresh token before the request reaches a protected page.
  *
- * Fine-grained *role* checks (Team Member vs Manager/Admin) live in the
- * per-section server layouts, which can call the backend `/auth/me`.
+ * Two gates run here, both fail-safe (a backend blip falls through to the
+ * per-section server layouts, which repeat the same checks):
+ *   - auth      — no session → `/login?next=…` for every protected route
+ *   - role      — a Team Member reaching a Manager area → `/dashboard`
  */
 
 const ACCESS_COOKIE = "wrg_access";
 const REFRESH_COOKIE = "wrg_refresh";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/projects", "/reviews"];
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/admin",
+  "/projects",
+  "/reviews",
+  "/account",
+];
+/** Subset of the protected routes that only a Manager may open. */
+const MANAGER_PREFIXES = ["/admin", "/reviews"];
 const AUTH_PAGES = ["/login", "/register"];
 
 const BACKEND_API_URL =
@@ -23,10 +33,15 @@ const BACKEND_API_URL =
 
 const cookieSecure = process.env.COOKIE_SECURE === "1";
 
-function isProtected(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
-  );
+const accessCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: cookieSecure,
+  path: "/",
+};
+
+function matchesPrefix(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 async function tryRefresh(
@@ -46,6 +61,25 @@ async function tryRefresh(
   }
 }
 
+/**
+ * Resolve the caller's role from the backend. Returns `null` when it cannot be
+ * determined (network error, expired token) so the caller can fall through to
+ * the server-layout check rather than lock a real Manager out on a blip.
+ */
+async function fetchRole(accessToken: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${BACKEND_API_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const user = (await res.json()) as { role?: string };
+    return user.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const access = req.cookies.get(ACCESS_COOKIE)?.value;
@@ -56,38 +90,50 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  if (!isProtected(pathname)) {
+  if (!matchesPrefix(pathname, PROTECTED_PREFIXES)) {
     return NextResponse.next();
   }
 
-  // --- Protected route: valid access token present ---
-  if (access) {
-    return NextResponse.next();
-  }
-
-  // --- Protected route: no access token, but a refresh token — renew it ---
-  if (refresh) {
-    const renewed = await tryRefresh(refresh);
-    if (renewed) {
-      const res = NextResponse.next();
-      res.cookies.set(ACCESS_COOKIE, renewed.access_token, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: cookieSecure,
-        path: "/",
-        maxAge: Math.max(renewed.expires_in - 15, 30),
-      });
-      return res;
-    }
+  // --- Resolve an effective access token: the one we have, or a renewed one ---
+  let effectiveAccess = access;
+  let renewed: { access_token: string; expires_in: number } | null = null;
+  if (!effectiveAccess && refresh) {
+    renewed = await tryRefresh(refresh);
+    if (renewed) effectiveAccess = renewed.access_token;
   }
 
   // --- Not authenticated: send to login, remembering where they were headed ---
-  const loginUrl = new URL("/login", req.url);
-  loginUrl.searchParams.set("next", `${pathname}${search}`);
-  const res = NextResponse.redirect(loginUrl);
-  res.cookies.delete(ACCESS_COOKIE);
-  res.cookies.delete(REFRESH_COOKIE);
-  return res;
+  if (!effectiveAccess) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("next", `${pathname}${search}`);
+    const res = NextResponse.redirect(loginUrl);
+    res.cookies.delete(ACCESS_COOKIE);
+    res.cookies.delete(REFRESH_COOKIE);
+    return res;
+  }
+
+  const withRenewedCookie = (res: NextResponse): NextResponse => {
+    if (renewed) {
+      res.cookies.set(ACCESS_COOKIE, renewed.access_token, {
+        ...accessCookieOptions,
+        maxAge: Math.max(renewed.expires_in - 15, 30),
+      });
+    }
+    return res;
+  };
+
+  // --- Role gate: a Team Member in a Manager area goes to their dashboard ---
+  if (matchesPrefix(pathname, MANAGER_PREFIXES)) {
+    const role = await fetchRole(effectiveAccess);
+    if (role === "Team Member") {
+      return withRenewedCookie(
+        NextResponse.redirect(new URL("/dashboard", req.url))
+      );
+    }
+    // role === null → couldn't check; the section layout's requireRole still guards it.
+  }
+
+  return withRenewedCookie(NextResponse.next());
 }
 
 export const config = {
@@ -96,6 +142,7 @@ export const config = {
     "/admin/:path*",
     "/projects/:path*",
     "/reviews/:path*",
+    "/account/:path*",
     "/login",
     "/register",
   ],
