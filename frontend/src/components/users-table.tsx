@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { Copy, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -260,7 +261,12 @@ export function UsersTable({
                   return (
                     <tr key={user.id} className="border-b last:border-0">
                       <td className="py-3 pr-4">
-                        {user.name}
+                        <Link
+                          href={`/reviews/members/${user.id}`}
+                          className="font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {user.name}
+                        </Link>
                         {isSelf ? (
                           <span className="ml-2 text-xs text-muted-foreground">
                             (you)
