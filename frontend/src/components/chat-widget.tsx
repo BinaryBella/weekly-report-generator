@@ -10,6 +10,7 @@ import {
   listChatSessionsAction,
   sendChatMessageAction,
 } from "@/lib/chat-actions";
+import { ChatMarkdown } from "@/components/chat-markdown";
 import { mostRecentMonday, toISODate } from "@/lib/format";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -239,13 +240,17 @@ export function ChatWidget() {
                     >
                       <div
                         className={cn(
-                          "max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm",
+                          "max-w-[85%] rounded-lg px-3 py-2 text-sm",
                           m.role === "user"
-                            ? "bg-primary text-primary-foreground"
+                            ? "whitespace-pre-wrap bg-primary text-primary-foreground"
                             : "bg-muted text-foreground"
                         )}
                       >
-                        {m.content}
+                        {m.role === "user" ? (
+                          m.content
+                        ) : (
+                          <ChatMarkdown text={m.content} />
+                        )}
                       </div>
                     </div>
                   ))
@@ -360,8 +365,8 @@ export function ChatWidget() {
               ) : null}
 
               {summaryText ? (
-                <div className="whitespace-pre-wrap rounded-md border bg-muted/50 p-3 text-sm">
-                  {summaryText}
+                <div className="rounded-md border bg-muted/50 p-3">
+                  <ChatMarkdown text={summaryText} />
                 </div>
               ) : null}
             </div>
